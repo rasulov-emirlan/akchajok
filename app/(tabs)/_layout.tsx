@@ -1,6 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Link, Tabs } from "expo-router";
 import { Pressable, useColorScheme } from "react-native";
+import React, { useState } from 'react';
 
 import Colors from "../../constants/Colors";
 
@@ -9,9 +10,26 @@ import Colors from "../../constants/Colors";
  */
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>["name"];
-  color: string;
 }) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
+  const [isPressed, setIsPressed] = useState(false);
+
+  return (
+    <Pressable
+      onPress={() => setIsPressed(true)}
+      onPressOut={() => setIsPressed(false)}
+    >
+      {({ pressed }) => (
+        <FontAwesome
+          size={28}
+          style={{
+            marginBottom: -3,
+            color: isPressed ? "blue" : pressed ? "gray" : "black",
+          }}
+          {...props}
+        />
+      )}
+    </Pressable>
+  );
 }
 
 export default function TabLayout() {
@@ -21,35 +39,30 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-      }}>
+      }}
+    >
       <Tabs.Screen
-        name='index'
+        name="index"
         options={{
           title: "spendings",
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon name='shopping-bag' color={color} />
-          ),
+          tabBarIcon: () => <TabBarIcon name="shopping-bag" />,
           headerRight: () => (
-            <Link href='/modal' asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name='info-circle'
-                    size={25}
-                    color={Colors[colorScheme ?? "light"].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
+            <Link href="/modal" asChild>
+              <FontAwesome
+                name="info-circle"
+                size={25}
+                color={Colors[colorScheme ?? "light"].text}
+                style={{ marginRight: 15 }}
+              />
             </Link>
           ),
         }}
       />
       <Tabs.Screen
-        name='two'
+        name="two"
         options={{
           title: "profile",
-          tabBarIcon: ({ color }) => <TabBarIcon name='user' color={color} />,
+          tabBarIcon: () => <TabBarIcon name="user" />,
         }}
       />
     </Tabs>
