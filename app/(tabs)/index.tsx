@@ -151,6 +151,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "column",
+    backgroundColor: "white"
   },
   scrollView: {
     width: "100%",
