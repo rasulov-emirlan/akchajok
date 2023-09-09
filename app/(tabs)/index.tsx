@@ -1,29 +1,22 @@
 import { Button, ScrollView, StyleSheet } from "react-native";
-import { Text, View } from "../../components/Themed";
 import { useEffect, useState } from "react";
-import Spending from "../../components/spendings";
 import { TextInput } from "react-native-gesture-handler";
 import * as SQLite from "expo-sqlite";
 
-interface Spending {
-  id: number;
-  name: string;
-  amount: number;
-  currency?: currency;
-  date: Date;
-}
+import { useSpendingStore } from "../../store/store";
+import { Currency, Spending as SpendingI } from "../../models/spendings";
+import Spending from "../../components/spendings";
+import { Text, View } from "../../components/Themed";
+
+type formDataField = "name" | "amount" | "currency";
 
 interface FormDataI {
   name: string;
   amount: string;
-  currency?: currency;
+  currency?: Currency;
 }
 
-type currency = "KGS" | "USD" | "EUR" | "RUB";
-
-const defaultCurrency: currency = "KGS";
-
-type formDataField = "name" | "amount" | "currency";
+const defaultCurrency = "KGS";
 
 export default function TabOneScreen() {
   const db: SQLite.SQLiteDatabase = SQLite.openDatabase("spendings.db");
@@ -37,34 +30,15 @@ export default function TabOneScreen() {
 
     db.transaction((tx) => {
       tx.executeSql("SELECT * FROM spendings;", [], (_, { rows }) => {
-        setSpendings([]);
-        for (let i = 0; i < rows.length; i++) {
-          setSpendings((prev) => [
-            ...prev,
-            {
-              id: rows.item(i).id,
-              name: rows.item(i).name,
-              amount: rows.item(i).amount,
-              currency: rows.item(i).currency,
-              date: new Date(rows.item(i).date),
-            },
-          ]);
-        }
+        const spendings = rows._array as SpendingI[];
+        spendingsStore.setSpendings(spendings);
+        const sum = spendings.reduce((acc, curr) => acc + curr.amount, 0);
       });
     });
   }, []);
 
-  const [spendings, setSpendings] = useState<Spending[]>([]);
-  const [spendingSum, setSpendingSum] = useState<number>(0);
+  const spendingsStore = useSpendingStore();
   const [formData, setFormData] = useState<FormDataI>({} as FormDataI);
-
-  useEffect(() => {
-    let sum = 0;
-    spendings.forEach((spen) => {
-      sum += spen.amount;
-    });
-    setSpendingSum(sum);
-  }, [spendings]);
 
   const handleInputChange = (name: formDataField, value: string) => {
     setFormData({
@@ -80,25 +54,31 @@ export default function TabOneScreen() {
       amount: Number(formData.amount),
       currency: formData.currency,
       date: new Date(),
-    };
+    } as SpendingI;
     if (!newSpending.currency) {
       newSpending.currency = defaultCurrency;
     }
-    db.transaction((tx) => {
-      tx.executeSql(
-        "INSERT INTO spendings (name, amount, currency, date) VALUES (?, ?, ?, ?);",
-        [
-          newSpending.name,
-          newSpending.amount,
-          newSpending.currency || defaultCurrency,
-          newSpending.date.toISOString(),
-        ],
-        (_, { insertId }) => {
-          newSpending.id = insertId as number;
-        }
-      );
-    });
-    setSpendings([...spendings, newSpending]);
+    db.transaction(
+      (tx) => {
+        tx.executeSql(
+          "INSERT INTO spendings (name, amount, currency, date) VALUES (?, ?, ?, ?);",
+          [
+            newSpending.name,
+            newSpending.amount,
+            newSpending.currency || defaultCurrency,
+            newSpending.date.toISOString(),
+          ],
+          (_, { insertId }) => {
+            newSpending.id = insertId as number;
+          }
+        );
+      },
+      (err) => console.log(err),
+      () => {
+        setFormData({} as FormDataI);
+        spendingsStore.addSpending(newSpending);
+      }
+    );
   };
 
   const handleDelete = (id: number) => {
@@ -106,23 +86,19 @@ export default function TabOneScreen() {
       tx.executeSql("DELETE FROM spendings WHERE id = ?;", [id]);
     });
 
-    const newSpendings = spendings.filter((spen) => spen.id !== id);
-    setSpendings(newSpendings);
+    spendingsStore.deleteSpending(id);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Total: {spendingSum}</Text>
+      <Text style={styles.title}>Total: {spendingsStore.spendingsTotal}</Text>
 
       <ScrollView style={styles.scrollView}>
-        {spendings.map((spen, i) => (
+        {spendingsStore.spendings.map((spen, i) => (
           <Spending
             key={i}
-            name={spen.name}
-            amount={spen.amount}
-            currency={spen.currency}
+            spending={spen}
             deleteCallback={() => handleDelete(spen.id)}
-            date={spen.date}
           />
         ))}
       </ScrollView>
@@ -151,7 +127,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "column",
-    backgroundColor: "white"
+    backgroundColor: "white",
   },
   scrollView: {
     width: "100%",

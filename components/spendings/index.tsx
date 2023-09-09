@@ -1,26 +1,24 @@
 import React from "react";
 import { Button, StyleSheet, Text, View } from "react-native";
+import { Spending as SpendingI } from "../../models/spendings";
 
-interface SpendingI {
-  name: string;
-  amount: number;
-  currency?: string;
+interface Props {
+  spending: SpendingI;
   deleteCallback: () => void;
-  date: Date;
 }
 
-export default function Spending(props: SpendingI): JSX.Element {
+export default function Spending(props: Props): JSX.Element {
   const [opened, setOpened] = React.useState<boolean>(false);
 
   return (
     <View style={styles.shadowView}>
       <View style={styles.container}>
         <Text onPress={(e) => setOpened((prev) => !prev)} style={styles.name}>
-          {props.name}
+          {props.spending.name}
         </Text>
         <View>
-          <Text style={styles.amount}>{props.amount}</Text>
-          <Text style={styles.currency}>{props.currency}</Text>
+          <Text style={styles.amount}>{props.spending.amount}</Text>
+          <Text style={styles.currency}>{props.spending.currency}</Text>
         </View>
       </View>
 
@@ -60,6 +58,7 @@ const styles = StyleSheet.create({
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+    flexWrap: "wrap",
   },
   name: {
     fontSize: 20,
